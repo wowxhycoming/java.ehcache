@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ehcache updateCheck="false">
+	<diskStore path="/ehcache/distribute1"/>
+
+	<!-- 1. cacheManagerPeerProviderFactory配置。用于指定除自身之外的网络群体中其他提供同步的主机列表，为发现成员方式、成员列表、同步的缓存 -->
+	<cacheManagerPeerProviderFactory
+			class="net.sf.ehcache.distribution.RMICacheManagerPeerProviderFactory"
+			properties="peerDiscovery=manual,
+						rmiUrls=//localhost:40002/distribute|//localhost:40003/distribute"
+	/>
+
+	<!-- 监听来自于其他复制节点消息的本JVM的host,port -->
+	<cacheManagerPeerListenerFactory
+			class="net.sf.ehcache.distribution.RMICacheManagerPeerListenerFactory"
+			properties="hostName=localhost,
+						port=40001,
+						socketTimeoutMillis=2000"
+	/>
+
+	<!-- 监控？没弄明白-->
+	<!--<cacheManagerPeerListenerFactory-->
+			<!--class="org.terracotta.ehcachedx.monitor.probe.ProbePeerListenerFactory"-->
+			<!--properties="monitorAddress=localhost, monitorPort=40011"-->
+	<!--/>-->
+
+	<defaultCache
+			maxElementsInMemory="1000"
+			eternal="false"
+			timeToIdleSeconds="120"
+			timeToLiveSeconds="120"
+			overflowToDisk="true"
+	/>
+
+	<cache name="distribute"
+		   maxElementsInMemory="10000"
+		   eternal="false"
+		   timeToIdleSeconds="300000"
+		   timeToLiveSeconds="600000"
+		   overflowToDisk="false">
+
+		<!-- 一致性设置：strong，强一致性 -->
+		<!--<terracotta clustered="true" consistency="strong" />-->
+
+		<!-- 2. 设置缓存和缓存监听 （这里采用默认的异步）-->
+		<cacheEventListenerFactory
+				class="net.sf.ehcache.distribution.RMICacheReplicatorFactory"
+				properties="replicateAsynchronously=false, replicatePuts=true,
+							replicatePutsViaCopy=true, replicateUpdates=true,
+							replicateUpdatesViaCopy=true, replicateRemovals=true,
+							asynchronousReplicationIntervalMillis=200"
+		/>
+
+		<!-- 用于在初始化缓存，以及自动设置 -->
+		<bootstrapCacheLoaderFactory class="net.sf.ehcache.distribution.RMIBootstrapCacheLoaderFactory"
+									 properties="bootstrapAsynchronously=false"
+		/>
+
+	</cache>
+
+</ehcache>
